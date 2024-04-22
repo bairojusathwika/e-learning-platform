@@ -10,7 +10,6 @@ User registration with email uniqueness validation and password strength enforce
 
 Course Management:
 API endpoint to retrieve available courses with filtering capabilities (category, level, popularity).
-Pagination for efficient handling of large course datasets.
 Superadmin-only CRUD (Create, Read, Update, Delete) operations for courses.
 
 User Enrollment:
