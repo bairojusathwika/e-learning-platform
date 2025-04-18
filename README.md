@@ -16,3 +16,5 @@ User Enrollment:
 API endpoint for users to enroll in courses of interest.
 Validation to prevent duplicate enrollments.
 User access to view their enrolled courses.
+
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/bairojusathwika/e-learning-platform?utm_source=oss&utm_medium=github&utm_campaign=bairojusathwika%2Fe-learning-platform&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
