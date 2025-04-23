@@ -3,6 +3,14 @@
 Description:
 This project implements a comprehensive API for a Learning Management System (LMS) platform, facilitating user registration, profile management, course exploration, enrollment, and superadmin control.
 
+🔧 Tech Stack
+Node.js with Express.js – Server framework
+PostgreSQL (via pg module) – Relational database
+NeonDB – Hosted PostgreSQL (fully compatible with pg)
+bcryptjs – Password hashing
+dotenv – Environment variable management
+
+
 Features:
 
 User Management:
