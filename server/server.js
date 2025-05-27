@@ -1,73 +1,86 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const { Pool } = require("pg");
-require("dotenv").config();
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const { Pool } = require('pg');
+const cors = require('cors');
+const helmet = require('helmet');
 
-const router = require("./routes/auth-router");
+// Database configuration
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }  // Required for Neon
+});
+
+const router = require('./routes/auth-router');
 
 const app = express();
-
-// Database connection setup
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,  // Make sure your .env file has this variable
-    ssl: {
-        rejectUnauthorized: false  // Required for NeonDB SSL connections
-    }
-});
+const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(helmet());
+app.use(cors());
 app.use(bodyParser.json());
-app.use(express.json());
-app.use("/api/auth", router);
 
-// Courses Filter by Category
-app.get('/courses/filter', async (req, res) => {
+// Routes
+app.use('/api/auth', router);
+
+// Generic course filter function
+const filterCourses = async (filterType, filterValue) => {
+    const validFilters = {
+        category: 'course_category',
+        difficulty: 'course_difficulty',
+        instructor: 'course_instructor'
+    };
+
+    if (!validFilters[filterType]) {
+        throw new Error('Invalid filter type');
+    }
+
+    const columnName = filterType === 'category' ? 'course_category' :
+        filterType === 'difficulty' ? 'course_difficulty' :
+            'course_instructor';
+
+    const query = `
+        SELECT id, title, course_name, description, ${columnName}, price 
+        FROM courses 
+        WHERE ${columnName} = $1
+    `;
+
+    return pool.query(query, [filterValue]);
+};
+
+// Courses Filter endpoints
+app.get('/api/courses/:filterType', async (req, res, next) => {
     try {
-        const { course_category } = req.query;
-        const result = await pool.query(
-            'SELECT course_id, course_name, course_category FROM course WHERE course_category = $1',
-            [course_category]
-        );
+        const { filterType } = req.params;
+        const filterValue = req.query[filterType];
+
+        if (!filterValue) {
+            return res.status(400).json({
+                error: `Missing required query parameter: ${filterType}`
+            });
+        }
+
+        const result = await filterCourses(filterType, filterValue);
         res.json(result.rows);
     } catch (err) {
-        console.error('Error executing SQL query:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
     }
 });
 
-// Courses Filter by Difficulty
-app.get('/courses/difficulty', async (req, res) => {
-    try {
-        const { course_difficulty } = req.query;
-        const result = await pool.query(
-            'SELECT course_id, course_name, course_category FROM course WHERE course_difficulty = $1',
-            [course_difficulty]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        console.error('Error executing SQL query:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Courses Filter by Instructor
-app.get('/courses/instructor', async (req, res) => {
-    try {
-        const { course_instructor } = req.query;
-        const result = await pool.query(
-            'SELECT course_id, course_name, course_category FROM course WHERE course_instructor = $1',
-            [course_instructor]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        console.error('Error executing SQL query:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!' });
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port: ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = pool;
+module.exports = { pool, app };

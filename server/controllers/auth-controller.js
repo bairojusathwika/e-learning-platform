@@ -91,33 +91,51 @@ const login = async (req, res) => {
     }
 };
 
-
-const profile = async (req,res) =>{
+const profile = async (req, res) => {
     try {
-        console.log(req.body)
-        res.status(200).json({message: req.body})
+        const { userId } = req.body;
+        const userResult = await pool.query('SELECT id, name, email, profile_picture_url FROM users WHERE id = $1', [userId]);
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json(userResult.rows[0]);
     } catch (error) {
-        console.log(error);
+        console.error("Profile error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 }
 
-const course = async(req,res) =>{
+const course = async (req, res) => {
     try {
-        console.log(req.body)
-        res.status(200).json({message: req.body});
+        const coursesResult = await pool.query(`
+            SELECT c.*, u.name as instructor_name 
+            FROM courses c 
+            JOIN users u ON c.instructor_id = u.id
+        `);
+        res.status(200).json(coursesResult.rows);
     } catch (error) {
-        console.log(error);
+        console.error("Course error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 }
 
-const enrolled = (req,res) =>{
+const enrolled = async (req, res) => {
     try {
-        console.log(req.body)
-        res.status(200).json({message: req.body})
+        const { userId } = req.body;
+        const enrolledResult = await pool.query(`
+            SELECT c.*, u.name as instructor_name 
+            FROM courses c 
+            JOIN enrollments e ON c.id = e.course_id 
+            JOIN users u ON c.instructor_id = u.id
+            WHERE e.user_id = $1
+        `, [userId]);
+        res.status(200).json(enrolledResult.rows);
     } catch (error) {
-        console.log(error);
+        console.error("Enrolled courses error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 }
 
-
-module.exports = {home,register,login,profile,course,enrolled};
+module.exports = { home, register, login, profile, course, enrolled };
